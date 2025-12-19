@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MyCard Map v0.2</title>
+    <!-- 修正：連到 style.css -->
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>MyCard Map v0.2</h1>
+    </header>
+
+    <main class="app-main">
+      <div id="mapFrame" class="map-frame">
+        <!-- 給 app.js 使用的 SVG + viewport -->
+        <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg">
+          <g id="viewport"></g>
+        </svg>
+        <!-- 右上角工具列：放大 / 縮小 / 重置 -->
+        <div class="map-toolbar">
+          <button class="map-tool-btn" id="btnZoomIn" aria-label="放大">
+            <img src="./assest/icon/plus.svg" alt="">
+          </button>
+          <button class="map-tool-btn" id="btnZoomOut" aria-label="縮小">
+            <img src="./assest/icon/minus.svg" alt="">
+          </button>
+          <button class="map-tool-btn" id="btnResetView" aria-label="重置視圖">
+            <img src="./assest/icon/restart.svg" alt="">
+          </button>
+        </div>
+
+      <aside id="infoPanel" class="info-float">
+        <header class="info-header">
+          <div class="info-controls">
+            <button id="closeInfo" class="icon-btn" aria-label="關閉">✕</button>
+          </div>
+        </header>
+        <div class="info-body" id="infoBody"></div>
+      </aside>
+
+      <div class="map-hint" id="mapHint">滾輪縮放、拖曳平移；點擊地區查看資訊</div>
+      </div>
+    </main>
+
+    <!-- 金流 icon 模式浮動 tooltip -->
+    <div id="methodTooltip" class="method-tooltip" role="tooltip"></div>
+
+    <!-- script 放在 body 最後 -->
+    <script src="./country-info.js"></script>
+    <script src="./payment-catalog.js"></script>
+    <script src="./country-payments.js"></script>
+    <script src="./app.js"></script>
+  </body>
+
+</html>
