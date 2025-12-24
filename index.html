@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MyCard Map v0.2</title>
-    <!-- 修正：連到 style.css -->
-    <link rel="stylesheet" href="./style.css" />
+    <title>MyCard Map v0.3</title>
+    <!-- nation-map-style.css -->
+    <link rel="stylesheet" href="./nation-map-style.css" />
   </head>
   <body>
-    <header class="app-header">
+    <header class="nation-map">
       <h1>MyCard Map v0.2</h1>
     </header>
 
     <main class="app-main">
       <div id="mapFrame" class="map-frame">
-        <!-- 給 app.js 使用的 SVG + viewport -->
+        <!-- nation-map-app.js 使用的 SVG + viewport -->
         <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg">
           <g id="viewport"></g>
         </svg>
@@ -51,7 +51,7 @@
     <script src="./country-info.js"></script>
     <script src="./payment-catalog.js"></script>
     <script src="./country-payments.js"></script>
-    <script src="./app.js"></script>
+    <script src="./nation-map-app.js"></script>
   </body>
 
 </html>
