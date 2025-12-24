@@ -89,8 +89,8 @@ body {
   display: block;
   width: 100%;
   height: 100%;
-  /* 讓自訂指標事件接管：避免瀏覽器自己的雙指縮放／拖曳阻擋 pointermove */
-  touch-action: none;
+  /* 預設保留垂直滾動與系統縮放，雙指手勢時再由 app.js 動態鎖定 */
+  touch-action: pan-y pinch-zoom;
 }
 
 #mapSvg * { vector-effect: non-scaling-stroke; }
