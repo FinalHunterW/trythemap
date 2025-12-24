@@ -12,7 +12,7 @@ class MapViewer {
     this.viewport  = viewport;
     this.infoPanel = infoPanel;
 
-                                       // 加：記住外層 mapFrame
+    // 加：記住外層 mapFrame
     this.frameEl = svg.parentElement;  // #mapFrame
     this.frameW = FRAME_W;
     this.frameH = FRAME_H;
@@ -32,14 +32,21 @@ class MapViewer {
     this.startTxTy     = { tx: 0, ty: 0 };
     this.pointerMap    = new Map();         // pointerId
     this.lastPinchDist = null;
+    this.lastCenter    = null;
 
     this.activeEl = null;  // 目前高亮的元素
+
     this.defaultTouchAction = window.getComputedStyle(this.svg).touchAction || 'auto';
+
     this.bindEvents();
   }
 
   isMobileLike() {
-    return window.matchMedia('(max-width: 899px)').matches;
+    return (
+      window.matchMedia('(max-width: 899px)').matches ||
+      window.matchMedia('(pointer: coarse)').matches ||
+      navigator.maxTouchPoints > 0
+    );
   }
 
   isMobileTouch(e) {
@@ -170,6 +177,7 @@ class MapViewer {
     if (isTouchMobile && this.pointerMap.size < 2) {
       this.isPanning     = false;
       this.lastPinchDist = null;
+      this.lastCenter    = null;
       this.setTouchAction('pan-y pinch-zoom');
       return;
     }
@@ -184,6 +192,7 @@ class MapViewer {
       this.panStart      = { x: e.clientX, y: e.clientY };
       this.startTxTy     = { tx: this.tx, ty: this.ty };
       this.lastPinchDist = null;
+      this.lastCenter    = null;
     } else if (this.pointerMap.size === 2) {
         // 兩指：切換成 pinch 模式，不再平移
             this.isPanning     = false;
@@ -192,6 +201,10 @@ class MapViewer {
         pts[0].x - pts[1].x,
         pts[0].y - pts[1].y
       );
+      this.lastCenter    = {
+        x: (pts[0].x + pts[1].x) / 2,
+        y: (pts[0].y + pts[1].y) / 2
+      };
     }
   }
 
@@ -218,6 +231,13 @@ class MapViewer {
 
       const cx = (pts[0].x + pts[1].x) / 2;
       const cy = (pts[0].y + pts[1].y) / 2;
+      if (this.lastCenter) {
+        const dx = cx - this.lastCenter.x;
+        const dy = cy - this.lastCenter.y;
+        this.tx += dx;
+        this.ty += dy;
+      }
+      this.lastCenter = { x: cx, y: cy };
       this.zoomBy(factor, cx, cy);
       return;
     }
@@ -238,6 +258,7 @@ class MapViewer {
 
     if (this.pointerMap.size < 2) {
       this.lastPinchDist = null;
+      this.lastCenter    = null;
     }
     if (this.pointerMap.size === 0) {
       this.isPanning = false;
