@@ -1,41 +1,121 @@
-/* === 全域變數與重置 === */
-/* http://meyerweb.com/eric/tools/css/reset/ 
+/* === 全域變數與重置（僅套用在含有 .nation-map 的頁面） === */
+/* http://meyerweb.com/eric/tools/css/reset/
    v2.0 | 20110126
    License: none (public domain)
 */
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-	margin: 0;
-	padding: 0;
-	border: 0;
-	font-size: 100%;
-	font: inherit;
-	vertical-align: baseline;
+body.nation-map,
+body.nation-map div,
+body.nation-map span,
+body.nation-map applet,
+body.nation-map object,
+body.nation-map iframe,
+body.nation-map h1,
+body.nation-map h2,
+body.nation-map h3,
+body.nation-map h4,
+body.nation-map h5,
+body.nation-map h6,
+body.nation-map p,
+body.nation-map blockquote,
+body.nation-map pre,
+body.nation-map a,
+body.nation-map abbr,
+body.nation-map acronym,
+body.nation-map address,
+body.nation-map big,
+body.nation-map cite,
+body.nation-map code,
+body.nation-map del,
+body.nation-map dfn,
+body.nation-map em,
+body.nation-map img,
+body.nation-map ins,
+body.nation-map kbd,
+body.nation-map q,
+body.nation-map s,
+body.nation-map samp,
+body.nation-map small,
+body.nation-map strike,
+body.nation-map strong,
+body.nation-map sub,
+body.nation-map sup,
+body.nation-map tt,
+body.nation-map var,
+body.nation-map b,
+body.nation-map u,
+body.nation-map i,
+body.nation-map center,
+body.nation-map dl,
+body.nation-map dt,
+body.nation-map dd,
+body.nation-map ol,
+body.nation-map ul,
+body.nation-map li,
+body.nation-map fieldset,
+body.nation-map form,
+body.nation-map label,
+body.nation-map legend,
+body.nation-map table,
+body.nation-map caption,
+body.nation-map tbody,
+body.nation-map tfoot,
+body.nation-map thead,
+body.nation-map tr,
+body.nation-map th,
+body.nation-map td,
+body.nation-map article,
+body.nation-map aside,
+body.nation-map canvas,
+body.nation-map details,
+body.nation-map embed,
+body.nation-map figure,
+body.nation-map figcaption,
+body.nation-map footer,
+body.nation-map header,
+body.nation-map hgroup,
+body.nation-map menu,
+body.nation-map nav,
+body.nation-map output,
+body.nation-map ruby,
+body.nation-map section,
+body.nation-map summary,
+body.nation-map time,
+body.nation-map mark,
+body.nation-map audio,
+body.nation-map video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
 }
 /* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
-footer, header, hgroup, menu, nav, section {
-	display: block;
+body.nation-map article,
+body.nation-map aside,
+body.nation-map details,
+body.nation-map figcaption,
+body.nation-map figure,
+body.nation-map footer,
+body.nation-map header,
+body.nation-map hgroup,
+body.nation-map menu,
+body.nation-map nav,
+body.nation-map section {
+  display: block;
 }
-body { line-height: 1; }
-ol, ul { list-style: none; }
-blockquote, q { quotes: none; }
-blockquote:before, blockquote:after,
-q:before, q:after { content: ''; content: none; }
-table { border-collapse: collapse; border-spacing: 0; }
+body.nation-map { line-height: 1; }
+body.nation-map ol,
+body.nation-map ul { list-style: none; }
+body.nation-map blockquote,
+body.nation-map q { quotes: none; }
+body.nation-map blockquote:before,
+body.nation-map blockquote:after,
+body.nation-map q:before,
+body.nation-map q:after { content: ''; content: none; }
+body.nation-map table { border-collapse: collapse; border-spacing: 0; }
 
-:root {
+body.nation-map {
   /* 淺色系 */
   --bg: #f6f7fb;
   --surface: #ffffff;
@@ -46,14 +126,17 @@ table { border-collapse: collapse; border-spacing: 0; }
   --accent-2: #60a5fa;
   --border: #e5e7eb;
   --shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
+
+  min-height: 100vh;
   margin: 0;
   color: var(--text);
   background: var(--bg);
   font: 14px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
+}
+body.nation-map *,
+body.nation-map *::before,
+body.nation-map *::after {
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -89,7 +172,7 @@ body {
   display: block;
   width: 100%;
   height: 100%;
-  /* 預設保留垂直滾動與系統縮放，雙指手勢時再由 app.js 動態鎖定 */
+  /* 預設保留垂直滾動與系統縮放，雙指手勢時再由 nation-map-app.js 動態鎖定 */
   touch-action: pan-y pinch-zoom;
 }
 
