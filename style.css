@@ -89,6 +89,8 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+  /* 讓自訂指標事件接管：避免瀏覽器自己的雙指縮放／拖曳阻擋 pointermove */
+  touch-action: none;
 }
 
 #mapSvg * { vector-effect: non-scaling-stroke; }
@@ -495,7 +497,7 @@ body {
   text-align: center;
 }
 
-.info-body > :last-child { margin-bottom: 0 !important; }
+.info-body > :last-child { margin-bottom: 0; }
 
 /* 浮動金流名稱 tooltip（只在 Icon 模式下用） */
 .method-tooltip {
@@ -621,6 +623,8 @@ body {
     margin-top: 0;
     border-radius: 12px;
     background: rgba(255,255,255,0.0);
+    /* 內部才會滾動，避免外層把觸控事件吃掉 */
+    touch-action: auto;
   }
 
   .payments-scroll {
@@ -634,6 +638,7 @@ body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;   /* Firefox 隱藏 scrollbar */
     touch-action: pan-x;
+    overscroll-behavior: contain;
   }
   .payments-scroll::-webkit-scrollbar { width: 0; height: 0; }
 
