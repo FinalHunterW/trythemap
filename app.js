@@ -34,8 +34,22 @@ class MapViewer {
     this.lastPinchDist = null;
 
     this.activeEl = null;  // 目前高亮的元素
-
+    this.defaultTouchAction = window.getComputedStyle(this.svg).touchAction || 'auto';
     this.bindEvents();
+  }
+
+  isMobileLike() {
+    return window.matchMedia('(max-width: 899px)').matches;
+  }
+
+  isMobileTouch(e) {
+    return e.pointerType === 'touch' && this.isMobileLike();
+  }
+
+  setTouchAction(action) {
+    if (this.svg && this.svg.style.touchAction !== action) {
+      this.svg.style.touchAction = action;
+    }
   }
 
   updateFrameSize() {
@@ -150,8 +164,22 @@ class MapViewer {
 
     this.pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    if (this.pointerMap.size === 1) {
-        // 一指：啟動平移
+    const isTouchMobile = this.isMobileTouch(e);
+    const allowSinglePan = !isTouchMobile;
+
+    if (isTouchMobile && this.pointerMap.size < 2) {
+      this.isPanning     = false;
+      this.lastPinchDist = null;
+      this.setTouchAction('pan-y pinch-zoom');
+      return;
+    }
+
+    if (isTouchMobile && this.pointerMap.size === 2) {
+      this.setTouchAction('none');
+    }
+
+    if (this.pointerMap.size === 1 && allowSinglePan) {
+        // 一指：啟動平移（僅桌機 / 非觸控）
       this.isPanning     = true;
       this.panStart      = { x: e.clientX, y: e.clientY };
       this.startTxTy     = { tx: this.tx, ty: this.ty };
@@ -171,6 +199,10 @@ class MapViewer {
     if (!this.pointerMap.has(e.pointerId)) return;
 
     this.pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (this.isMobileTouch(e) && this.pointerMap.size < 2) {
+      return; // 手機觸控需要雙指才啟動手勢
+    }
 
       // 兩指 pinch：距離變化當縮放
     if (this.pointerMap.size === 2 && this.lastPinchDist != null) {
@@ -209,15 +241,22 @@ class MapViewer {
     }
     if (this.pointerMap.size === 0) {
       this.isPanning = false;
+      if (this.isMobileTouch(e)) {
+        this.setTouchAction(this.defaultTouchAction);
+      }
       return;
     }
 
       // 兩指回一指：重新啟動平移
-    if (this.pointerMap.size === 1) {
+    if (this.pointerMap.size === 1 && !this.isMobileTouch(e)) {
       const pt             = Array.from(this.pointerMap.values())[0];
             this.isPanning = true;
             this.panStart  = { x: pt.x, y: pt.y };
             this.startTxTy = { tx: this.tx, ty: this.ty };
+    }
+
+    if (this.isMobileTouch(e) && this.pointerMap.size < 2) {
+      this.setTouchAction(this.defaultTouchAction);
     }
   }
 
@@ -392,8 +431,18 @@ class MapViewer {
   const btnZoomIn  = document.getElementById('btnZoomIn');
   const btnZoomOut = document.getElementById('btnZoomOut');
   const btnReset   = document.getElementById('btnResetView');
+  const mapHint    = document.getElementById('mapHint');
 
   const viewer = new MapViewer(svg, viewport, infoPanel);
+
+  const updateHintText = () => {
+    if (!mapHint) return;
+    const isMobile = viewer.isMobileLike();
+    mapHint.textContent = isMobile
+      ? '雙指拖曳或縮放地圖；點擊地區查看資訊'
+      : '滾輪縮放、拖曳平移；點擊地區查看資訊';
+  };
+  updateHintText();
 
     // 更新外框大小＋重新限制邊界，
     // 不重置縮放與中心
@@ -401,6 +450,7 @@ class MapViewer {
     viewer.updateFrameSize();
     viewer.clampTranslation();
     viewer.render();
+    updateHintText();
   });
 
     btnReset.addEventListener('click', () => {
@@ -916,28 +966,28 @@ function renderPayments(iso2, mountEl){
   if (!frag.childNodes.length) {
     const empty             = document.createElement('div');
           empty.className   = 'kv';
-          empty.textContent = '尚未設定支援的付款方式';
+          empty.textContent = '正在積極爭取此區域的付款方式!';
     frag.appendChild(empty);
   }
 
   content.appendChild(frag);
-  // 只更新 scroll 容器內的內容，dots 會留在外層
+    // 只更新 scroll 容器內的內容，dots 會留在外層
   scrollEl.innerHTML = '';
   scrollEl.appendChild(content);
 
-    // === 手機／平板：建立卡片圓點與滑動邏輯 ===
+      // === 手機／平板：建立卡片圓點與滑動邏輯 ===
   const isMobileLike = window.matchMedia('(max-width: 899px)').matches;
-  // 先把舊的 title 清掉（避免重複）
+    // 先把舊的 title 清掉（避免重複）
   const oldTitle = mountEl.querySelector(':scope > .sec-title');
   if (oldTitle) oldTitle.remove();
   
   if (isMobileLike) {
-    // 放在 payments-scroll 前面，避免 title 被當成橫向卡片的一份子
+      // 放在 payments-scroll 前面，避免 title 被當成橫向卡片的一份子
     mountEl.insertBefore(title, scrollEl);
   } else {
-    // 桌機版你原本就是直向列表，就可以放在內容裡（或照你原本）
-    // 這裡如果你想維持原本行為，也可以 append 到 content 裡
-    // content.appendChild(title);
+      // 桌機版你原本就是直向列表，就可以放在內容裡（或照你原本）
+      // 這裡如果你想維持原本行為，也可以 append 到 content 裡
+      // content.appendChild(title);
     mountEl.insertBefore(title, scrollEl);
   }
   if (isMobileLike) {
