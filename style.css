@@ -535,7 +535,8 @@ body {
 
   .app-main {
     padding: 8px;
-    height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
   .map-frame {
@@ -550,9 +551,9 @@ body {
     right: 8px;
     width: auto;
     top: auto;
-    bottom: 8px;              /* 與地圖底部留 8px */
-    height: 36%;              /* 比原本 30% 再高一點 */
-    max-height: 40%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    height: 38%;              /* 再拉高些，避免被瀏覽器列遮住 */
+    max-height: 42%;
     border-radius: 12px 12px 0 0;
   }
 
@@ -632,14 +633,15 @@ body {
     height: 100%;
     min-height: 0;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
     scroll-snap-type: x mandatory;
     padding: 0 0 8px;        /* 卡片跟圓點留 8px */
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;   /* Firefox 隱藏 scrollbar */
-    touch-action: pan-x;
+    touch-action: pan-x pan-y;
     overscroll-behavior: contain;
   }
+
   .payments-scroll::-webkit-scrollbar { width: 0; height: 0; }
 
   .payments-scroll > div {
