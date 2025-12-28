@@ -8,10 +8,8 @@
     <link rel="stylesheet" href="./nation-map-style.css" />
   </head>
   <body>
-    <header class="nation-map">
-      <h1>MyCard Map v0.2</h1>
-    </header>
-
+    <!-- 注意：nation-map-style.css 的 Reset/主題變數只在 body.nation-map 生效；未掛 class 時，瀏覽器預設樣式差異會較明顯 -->
+    <!-- 可預備之後整合進其他頁面時再決定是否加上 class="nation-map"（避免全站 reset） -->
     <main class="app-main">
       <div id="mapFrame" class="map-frame">
         <!-- nation-map-app.js 使用的 SVG + viewport -->
@@ -42,12 +40,22 @@
 
       <div class="map-hint" id="mapHint">滾輪縮放、拖曳平移；點擊地區查看資訊</div>
       </div>
+      <!-- 地圖下方「其他地區」 -->
+      <section class="region-section" id="regionSection" aria-label="其他地區">
+        <div class="region-wrap">
+          <h2 class="region-title">其他地區</h2>
+          <p class="region-desc">深耕遊戲領域多年，從遊戲推廣、多元支付到玩家服務，提供一站式服務。</p>
+
+          <!-- 國家按鈕由 JS 動態產生 -->
+          <div class="region-grid" id="regionGrid"></div>
+        </div>
+      </section>
     </main>
 
     <!-- 金流 icon 模式浮動 tooltip -->
     <div id="methodTooltip" class="method-tooltip" role="tooltip"></div>
 
-    <!-- script 放在 body 最後 -->
+    <!-- script -->
     <script src="./country-info.js"></script>
     <script src="./payment-catalog.js"></script>
     <script src="./country-payments.js"></script>
