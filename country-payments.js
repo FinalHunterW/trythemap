@@ -1,6 +1,7 @@
 // 以 ISO 3166-1 alpha-2 為 key 呼叫
 window.COUNTRY_PAYMENTS = {
   "TW": { // 台灣
+    "map-flag-Places": true,
     methods: {
       credit_card    : ["visa", "mastercard", "jcb", "unionpay"],
       ewallet        : ["linepay", "jkopay"],
@@ -11,6 +12,7 @@ window.COUNTRY_PAYMENTS = {
     }
   },
   "JP": { // 日本
+    "map-flag-Places": true,
     methods: {
       credit_card    : ["visa", "mastercard", "jcb", "unionpay"],
       ewallet        : [],
@@ -21,6 +23,7 @@ window.COUNTRY_PAYMENTS = {
     }
   },
   "US": {
+    "map-flag-Places": true,
     methods: {
       credit_card    : ["visa", "mastercard", "jcb", "unionpay"],
       ewallet        : [],
@@ -31,6 +34,7 @@ window.COUNTRY_PAYMENTS = {
     }
   },
   "GB": { 
+    "map-flag-Places": true,
     methods: {
       credit_card    : ["visa","mastercard","jcb"],
       ewallet        : [],
@@ -41,6 +45,7 @@ window.COUNTRY_PAYMENTS = {
     } 
   },
   "CN": { 
+    "map-flag-Places": true,
     methods: {
       credit_card    : ["unionpay"],
       ewallet        : [],
@@ -51,6 +56,7 @@ window.COUNTRY_PAYMENTS = {
     } 
   },
   "HK": { 
+    "map-flag-Places": true,
     methods: {
       credit_card    : ["visa","mastercard","unionpay"],
       ewallet        : ["alipayhk","PayMe","Octopus"],
@@ -60,7 +66,8 @@ window.COUNTRY_PAYMENTS = {
       bnpl           : []
     } 
   },
-  "GB": { 
+  "KR": { 
+    "map-flag-Places": false,
     methods: {
       credit_card    : ["visa","mastercard","jcb"],
       ewallet        : [],
@@ -70,7 +77,8 @@ window.COUNTRY_PAYMENTS = {
       bnpl           : []
     } 
   },
-  "GB": { 
+  "MO": { 
+    "map-flag-Places": false,
     methods: {
       credit_card    : ["visa","mastercard","jcb"],
       ewallet        : [],
@@ -80,7 +88,8 @@ window.COUNTRY_PAYMENTS = {
       bnpl           : []
     } 
   },
-  "GB": { 
+  "SG": { 
+    "map-flag-Places": false,
     methods: {
       credit_card    : ["visa","mastercard","jcb"],
       ewallet        : [],
@@ -90,7 +99,8 @@ window.COUNTRY_PAYMENTS = {
       bnpl           : []
     } 
   },
-  "GB": { 
+  "MY": { 
+    "map-flag-Places": true,
     methods: {
       credit_card    : ["visa","mastercard","jcb"],
       ewallet        : [],
