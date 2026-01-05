@@ -121,6 +121,14 @@ class MapViewer {
 
     this.activeEl = null;  // 目前高亮的元素
 
+    // 桌機拖曳防誤觸：拖曳超過門檻才視為 drag，並短暫屏蔽 click
+    // - 功能：避免拖曳後放開滑鼠時誤觸國家點擊
+    // - 刪除影響：拖曳操作容易誤點國家、造成資訊卡跳出
+    this.dragThreshold = 4;          // px（可依 UX 調整）
+    this.didDrag = false;            // 本次 pointerdown 是否發生拖曳
+    this.suppressClickUntil = 0;     // 拖曳結束後，在此時間點前忽略 click
+    this.panningPointerId = null;    // 桌機拖曳用的 pointerId
+
     this.defaultTouchAction = window.getComputedStyle(this.svg).touchAction || 'auto';
 
     this.bindEvents();
@@ -155,14 +163,17 @@ class MapViewer {
   }
 
   bindEvents() {
-    this.svg.addEventListener('wheel', (e) => { e.preventDefault(); this.onWheel(e); }, { passive: false });
+    // 滾輪：預設不攔截，讓頁面可自然上下滾動；
+    //       僅在按住 Ctrl(Win/Linux) 或 ⌘(Mac) 時才接管縮放。
+    // 刪除影響：若改回全攔截，使用者滑頁面會被地圖卡住。
+    this.svg.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+
     this.svg.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     window.addEventListener('pointermove', (e) => this.onPointerMove(e));
     window.addEventListener('pointerup',   (e) => this.onPointerUp(e));
 
-      // 事件委派在 viewport 上；另外也在 svg 上做一次保險
+    // 事件委派在 viewport 上：維持「點擊國家」邏輯不變
     this.viewport.addEventListener('click', (e) => this.onRegionClick(e));
-    //this.svg.addEventListener('click', (e) => this.onRegionClick(e));
   }
 
   async load(fileName) {
@@ -222,7 +233,11 @@ class MapViewer {
   }
 
   onWheel(e) {
-    e.preventDefault();
+    // 桌機滾輪縮放（可選模式）：僅在按住 Ctrl/⌘ 時啟用，避免滑頁面時被地圖卡住
+    // - 功能：讓使用者「刻意」才縮放；一般滾動維持頁面行為
+    // - 刪除影響：若改回全時啟用，滑頁面容易誤觸縮放造成卡住
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (e.cancelable) e.preventDefault();
 
     const delta  = Math.sign(e.deltaY) * -1;
     const factor = 1 + delta * ZOOM_STEP;
@@ -252,126 +267,159 @@ class MapViewer {
 
   onPointerMove(e) {
     if (!this.pointerMap.has(e.pointerId)) return;
-
-    this.pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    if (this.isMobileTouch(e) && this.pointerMap.size < 2) {
-      return; // 手機觸控需要雙指才啟動手勢
-    }
-
-      // 兩指 pinch：距離變化當縮放
-    if (this.pointerMap.size === 2 && this.lastPinchDist != null) {
-      const pts  = Array.from(this.pointerMap.values());
-      const dist = Math.hypot(
-        pts[0].x - pts[1].x,
-        pts[0].y - pts[1].y
-      );
-      if (dist <= 0) return;
-
-      const factor             = dist / this.lastPinchDist;
-            this.lastPinchDist = dist;
-
-      const cx = (pts[0].x + pts[1].x) / 2;
-      const cy = (pts[0].y + pts[1].y) / 2;
-      if (this.lastCenter) {
-        const dx = cx - this.lastCenter.x;
-        const dy = cy - this.lastCenter.y;
-        this.tx += dx;
-        this.ty += dy;
-      }
-      this.lastCenter = { x: cx, y: cy };
-      const { x: lx, y: ly } = this.toLocal({ clientX: cx, clientY: cy });
-      this.zoomBy(factor, lx, ly);
-      return;
-    }
-
-      // 一指平移
-    if (this.isPanning) {
-      const dx      = e.clientX - this.panStart.x;
-      const dy      = e.clientY - this.panStart.y;
-            this.tx = this.startTxTy.tx + dx;
-            this.ty = this.startTxTy.ty + dy;
-      this.clampTranslation();
-      this.render();
-    }
-  }
-
-  onPointerDown(e) {
-      // 只在地圖框內處理
-    if (e.target.closest('#infoPanel')) return;
-
     this.pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     const isTouchMobile = this.isMobileTouch(e);
-    const allowSinglePan = !isTouchMobile;
 
-    if (isTouchMobile && this.pointerMap.size < 2) {
-      this.isPanning     = false;
-      this.lastPinchDist = null;
-      this.lastCenter    = null;
-      this.setTouchAction('pan-y pinch-zoom');
+    // === 手機端：單指不接管；雙指才接管（pinch + 雙指平移） ===
+    if (isTouchMobile) {
+      if (this.pointerMap.size < 2) return;
+
+      // 雙指手勢期間避免頁面跟著捲動
+      if (e.cancelable) e.preventDefault();
+
+      // 兩指 pinch：距離變化當縮放；中心點移動同步做平移
+      if (this.pointerMap.size === 2 && this.lastPinchDist != null) {
+        const pts  = Array.from(this.pointerMap.values());
+        const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        if (dist <= 0) return;
+
+        const factor = dist / this.lastPinchDist;
+        this.lastPinchDist = dist;
+
+        const cx = (pts[0].x + pts[1].x) / 2;
+        const cy = (pts[0].y + pts[1].y) / 2;
+
+        // 雙指中心點移動 => 平移（必須雙指才允許）
+        if (this.lastCenter) {
+          const dx = cx - this.lastCenter.x;
+          const dy = cy - this.lastCenter.y;
+          this.tx += dx;
+          this.ty += dy;
+        }
+        this.lastCenter = { x: cx, y: cy };
+
+        // zoomBy 的中心點要用 SVG local 座標，避免縮放抵銷平移（會變成只會縮放不能移動）
+        const { x: lx, y: ly } = this.toLocal({ clientX: cx, clientY: cy });
+        this.zoomBy(factor, lx, ly);
+      }
       return;
     }
 
-    if (isTouchMobile && this.pointerMap.size === 2) {
-      this.setTouchAction('none');
+    // === 桌機端：左鍵拖曳平移 ===
+    if (!this.isPanning || this.panningPointerId !== e.pointerId) return;
+
+    const dx = e.clientX - this.panStart.x;
+    const dy = e.clientY - this.panStart.y;
+
+    // 超過門檻才視為拖曳，避免點擊也被當成 drag
+    if (!this.didDrag && (Math.abs(dx) + Math.abs(dy) >= this.dragThreshold)) {
+      this.didDrag = true;
     }
 
-    if (this.pointerMap.size === 1 && allowSinglePan) {
-        // 一指：啟動平移（僅桌機 / 非觸控）
-      this.isPanning     = true;
-      this.panStart      = { x: e.clientX, y: e.clientY };
-      this.startTxTy     = { tx: this.tx, ty: this.ty };
-      this.lastPinchDist = null;
-      this.lastCenter    = null;
-    } else if (this.pointerMap.size === 2) {
-        // 兩指：切換成 pinch 模式，不再平移
-            this.isPanning     = false;
-      const pts                = Array.from(this.pointerMap.values());
-            this.lastPinchDist = Math.hypot(
-        pts[0].x - pts[1].x,
-        pts[0].y - pts[1].y
-      );
-      this.lastCenter    = {
-        x: (pts[0].x + pts[1].x) / 2,
-        y: (pts[0].y + pts[1].y) / 2
-      };
+    this.tx = this.startTxTy.tx + dx;
+    this.ty = this.startTxTy.ty + dy;
+    this.clampTranslation();
+    this.render();
+  }
+
+  onPointerDown(e) {
+    // 只在地圖框內處理（避免在資訊卡上按壓造成地圖誤動作）
+    if (e.target.closest('#infoPanel')) return;
+
+    const isTouchMobile = this.isMobileTouch(e);
+
+    // === 手機端：單指點擊、雙指手勢（縮放/平移） ===
+    if (isTouchMobile) {
+      this.pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // 單指：只允許點擊；不接管拖曳/縮放，保持頁面可以自然上下滑動
+      if (this.pointerMap.size < 2) {
+        this.isPanning     = false;
+        this.didDrag       = false;
+        this.panningPointerId = null;
+        this.lastPinchDist = null;
+        this.lastCenter    = null;
+        this.setTouchAction('pan-y');
+        return;
+      }
+
+      // 雙指：接管手勢（pinch + 雙指平移），避免頁面在手勢期間跟著捲動
+      this.setTouchAction('none');
+      try { this.svg.setPointerCapture(e.pointerId); } catch (_) {}
+
+      // 第二指落下：建立 pinch 初始距離/中心點
+      if (this.pointerMap.size === 2) {
+        const pts = Array.from(this.pointerMap.values());
+        this.lastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        this.lastCenter = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      }
+      return;
     }
+
+    // === 桌機端：滑鼠左鍵按住才拖曳平移 ===
+    if (typeof e.button === 'number' && e.button !== 0) return;
+
+    // 桌機：開始拖曳（若沒有真的移動，後續 click 仍可正常點選國家）
+    this.pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    this.isPanning     = true;
+    this.didDrag       = false;
+    this.panningPointerId = e.pointerId;
+
+    this.panStart  = { x: e.clientX, y: e.clientY };
+    this.startTxTy = { tx: this.tx, ty: this.ty };
+
+    this.lastPinchDist = null;
+    this.lastCenter    = null;
+
+    try { this.svg.setPointerCapture(e.pointerId); } catch (_) {}
   }
 
   
 
   onPointerUp(e) {
+    // 移除本指資料
     this.pointerMap.delete(e.pointerId);
 
-    if (this.pointerMap.size < 2) {
-      this.lastPinchDist = null;
-      this.lastCenter    = null;
-    }
-    if (this.pointerMap.size === 0) {
-      this.isPanning = false;
-      if (this.isMobileTouch(e)) {
-        this.setTouchAction(this.defaultTouchAction);
-      } 
+    const isTouchMobile = this.isMobileTouch(e);
+
+    // === 手機端：雙指結束後恢復頁面可捲動 ===
+    if (isTouchMobile) {
+      if (this.pointerMap.size < 2) {
+        this.lastPinchDist = null;
+        this.lastCenter    = null;
+        this.setTouchAction('pan-y');
+      }
       return;
     }
 
-      // 兩指回一指：重新啟動平移
-    if (this.pointerMap.size === 1 && !this.isMobileTouch(e)) {
-      const pt             = Array.from(this.pointerMap.values())[0];
-            this.isPanning = true;
-            this.panStart  = { x: pt.x, y: pt.y };
-            this.startTxTy = { tx: this.tx, ty: this.ty };
+    // === 桌機端：結束拖曳並防誤觸 click ===
+    if (e.pointerId === this.panningPointerId) {
+      this.isPanning = false;
+      this.panningPointerId = null;
+
+      // 拖曳結束後短暫屏蔽 click，避免放開滑鼠時誤點國家
+      if (this.didDrag) {
+        const now = Date.now();
+        this.suppressClickUntil = Math.max(this.suppressClickUntil, now + 260);
+      }
     }
 
-    if (this.isMobileTouch(e) && this.pointerMap.size < 2) {
-      this.setTouchAction(this.defaultTouchAction);
+    if (this.pointerMap.size === 0) {
+      this.lastPinchDist = null;
+      this.lastCenter    = null;
     }
   }
 
 
   onRegionClick(e) {
-    const target = (e.target && e.target.closest) ? e.target.closest('path, polygon, polyline, rect, circle') : null;
+    // 拖曳結束後的短時間內忽略 click，避免誤點國家
+    if (Date.now() < this.suppressClickUntil) return;
+
+    const target = (e.target && e.target.closest)
+      ? e.target.closest('path, polygon, polyline, rect, circle')
+      : null;
+
     if (!target || !this.viewport.contains(target)) {
       // 空白區域點擊：清除選取
       if (this.activeEl) {
@@ -384,7 +432,6 @@ class MapViewer {
       this.infoPanel.classList.remove('open');
       return;
     }
-    if (!target || !this.viewport.contains(target)) return;
 
     if (this.activeEl && this.activeEl !== target) this.activeEl.classList.remove('active-region');
     this.activeEl = target;
