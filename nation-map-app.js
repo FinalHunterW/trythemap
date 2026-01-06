@@ -128,6 +128,7 @@ class MapViewer {
     this.didDrag = false;            // 本次 pointerdown 是否發生拖曳
     this.suppressClickUntil = 0;     // 拖曳結束後，在此時間點前忽略 click
     this.panningPointerId = null;    // 桌機拖曳用的 pointerId
+    this.hasPointerCapture  = false;   // 只有真的開始拖曳才 capture（避免 click 事件目標被重定向）
 
     this.defaultTouchAction = window.getComputedStyle(this.svg).touchAction || 'auto';
 
@@ -147,8 +148,20 @@ class MapViewer {
   }
 
   setTouchAction(action) {
-    if (this.svg && this.svg.style.touchAction !== action) {
-      this.svg.style.touchAction = action;
+    // touch-action 會影響瀏覽器是否接管觸控手勢
+    // - 'pan-y'：允許頁面垂直捲動（單指滑動時不會被地圖卡住）
+    // - 'none' ：完全由程式接管（雙指縮放/雙指平移時避免頁面跟著捲動）
+    // 刪除影響：手機端可能出現「雙指拖曳無效 / 只能縮放或只會捲頁」等問題。
+    if (!this.svg) return;
+
+    if (this.svg.style.touchAction !== action) this.svg.style.touchAction = action;
+    if (this.viewport && this.viewport.style.touchAction !== action) this.viewport.style.touchAction = action;
+
+    // iOS/Safari 對 SVG descendant 的 touch-action 行為較不一致：
+    // 用 class 強制讓子節點同步，確保「雙指拖曳」不會被瀏覽器當成頁面手勢吃掉。
+    if (this.frameEl) {
+      if (action === 'none') this.frameEl.classList.add('gesture-lock');
+      else this.frameEl.classList.remove('gesture-lock');
     }
   }
 
@@ -172,8 +185,13 @@ class MapViewer {
     window.addEventListener('pointermove', (e) => this.onPointerMove(e));
     window.addEventListener('pointerup',   (e) => this.onPointerUp(e));
 
-    // 事件委派在 viewport 上：維持「點擊國家」邏輯不變
-    this.viewport.addEventListener('click', (e) => this.onRegionClick(e));
+    // 點擊事件掛在 svg（避免 setPointerCapture 後 click 目標被 re-target 成 svg，導致 viewport 收不到事件）
+    // 刪除影響：拖曳後點擊國家可能會失效（點不到）。
+    this.svg.addEventListener('click', (e) => this.onRegionClick(e));
+
+    // pointercancel：iOS/Android 在手勢中斷時可能觸發，若不清理會造成雙指狀態卡死
+    // 刪除影響：手機端可能出現「縮放後無法再拖曳 / 無法再點擊」等殘留狀態。
+    window.addEventListener('pointercancel', (e) => this.onPointerUp(e));
   }
 
   async load(fileName) {
@@ -346,7 +364,12 @@ class MapViewer {
 
       // 雙指：接管手勢（pinch + 雙指平移），避免頁面在手勢期間跟著捲動
       this.setTouchAction('none');
-      try { this.svg.setPointerCapture(e.pointerId); } catch (_) {}
+
+      // 手機：雙指模式下把兩根手指都 capture（避免其中一指移出 SVG 後事件丟失）
+      // 刪除影響：雙指拖曳/縮放可能時靈時不靈（尤其是 iOS）。
+      for (const pid of this.pointerMap.keys()) {
+        try { this.svg.setPointerCapture(pid); } catch (_) {}
+      }
 
       // 第二指落下：建立 pinch 初始距離/中心點
       if (this.pointerMap.size === 2) {
@@ -372,7 +395,9 @@ class MapViewer {
     this.lastPinchDist = null;
     this.lastCenter    = null;
 
-    try { this.svg.setPointerCapture(e.pointerId); } catch (_) {}
+    // 桌機：先不做 pointer capture（避免 click 事件被 re-target 成 svg，導致點不到國家）
+    // 真的開始拖曳（超過門檻）後才 capture，確保離開 svg 還能持續拖曳。
+    this.hasPointerCapture = false;
   }
 
   
@@ -416,9 +441,16 @@ class MapViewer {
     // 拖曳結束後的短時間內忽略 click，避免誤點國家
     if (Date.now() < this.suppressClickUntil) return;
 
-    const target = (e.target && e.target.closest)
+    let target = (e.target && e.target.closest)
       ? e.target.closest('path, polygon, polyline, rect, circle')
       : null;
+
+    // 若 click 因為 pointer capture 被 re-target 成 svg，e.target 可能不是實際的 path
+    // 這時用座標反查實際命中的 element，確保國家可點選。
+    if (!target && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      if (hit && hit.closest) target = hit.closest('path, polygon, polyline, rect, circle');
+    }
 
     if (!target || !this.viewport.contains(target)) {
       // 空白區域點擊：清除選取
@@ -709,7 +741,7 @@ function renderRegionGrid(viewer){
     const isMobile = viewer.isMobileLike();
     mapHint.textContent = isMobile
       ? '雙指拖曳或縮放地圖；點擊地區查看資訊'
-      : '滾輪縮放、拖曳平移；點擊地區查看資訊';
+      : '按住 ctrl + 滾輪進行縮放、拖曳平移；點擊地區查看資訊';
   };
   updateHintText();
 
