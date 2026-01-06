@@ -188,54 +188,60 @@ this.bindEvents();
 lockBodyScroll() {
   if (this.bodyScrollLocked) return;
 
+  const html = document.documentElement;
   const body = document.body;
+
   this.bodyScrollLocked = true;
   this.lockedScrollY = window.scrollY || window.pageYOffset || 0;
 
-  // 記錄原本 inline，避免整合到其他頁面時誤傷既有樣式
+  // 記錄原本 inline（避免整合到其他頁面時誤傷既有樣式）
+  // 注意：此處刻意不再用 position:fixed 鎖 body，因為 iOS/Safari 會觸發版面寬度重算，
+  //       造成地圖外框「貼邊/跳動」、資訊卡中的旗幟/幣別偶發不顯示。
   this.prevBodyInline = {
-    position: body.style.position,
-    top: body.style.top,
-    left: body.style.left,
-    right: body.style.right,
-    width: body.style.width,
+    overflow: body.style.overflow,
+    overscrollBehavior: body.style.overscrollBehavior,
+    touchAction: body.style.touchAction,
+  };
+  this.prevHtmlInline = {
+    overscrollBehavior: html.style.overscrollBehavior,
   };
 
+  html.classList.add('nm-scroll-lock');
   body.classList.add('nm-scroll-lock');
-  body.style.position = 'fixed';
-  body.style.top      = `-${this.lockedScrollY}px`;
-  body.style.left     = '0';
-  body.style.right    = '0';
-  body.style.width    = '100%';
 }
 
 unlockBodyScroll() {
   if (!this.bodyScrollLocked) return;
 
+  const html = document.documentElement;
   const body = document.body;
 
+  html.classList.remove('nm-scroll-lock');
   body.classList.remove('nm-scroll-lock');
 
   // 還原 inline
   if (this.prevBodyInline) {
-    body.style.position = this.prevBodyInline.position;
-    body.style.top      = this.prevBodyInline.top;
-    body.style.left     = this.prevBodyInline.left;
-    body.style.right    = this.prevBodyInline.right;
-    body.style.width    = this.prevBodyInline.width;
+    body.style.overflow          = this.prevBodyInline.overflow;
+    body.style.overscrollBehavior = this.prevBodyInline.overscrollBehavior;
+    body.style.touchAction       = this.prevBodyInline.touchAction;
   } else {
-    body.style.position = '';
-    body.style.top      = '';
-    body.style.left     = '';
-    body.style.right    = '';
-    body.style.width    = '';
+    body.style.overflow          = '';
+    body.style.overscrollBehavior = '';
+    body.style.touchAction       = '';
   }
 
-  // 回到原本捲動位置
+  if (this.prevHtmlInline) {
+    html.style.overscrollBehavior = this.prevHtmlInline.overscrollBehavior;
+  } else {
+    html.style.overscrollBehavior = '';
+  }
+
+  // 理論上手勢期間已阻止捲動，這裡仍保險回到手勢開始時的位置
   window.scrollTo(0, this.lockedScrollY);
 
   this.bodyScrollLocked = false;
   this.prevBodyInline   = null;
+  this.prevHtmlInline   = null;
 }
 
 startGestureLock() {
