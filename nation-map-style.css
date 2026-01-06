@@ -694,7 +694,8 @@ body.nation-map *::after {
     /* 手機提示：改成自適應寬高，避免文字被裁切 */
     width: auto;
     height: auto;
-    max-width: calc(100% - 24px);
+    max-width: max-content;
+    max-height: max-content;
     top: 12px;
     left: 12px;
     right: 12px;
