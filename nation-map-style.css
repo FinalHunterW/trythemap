@@ -156,6 +156,10 @@ body.nm-scroll-lock {
   overscroll-behavior: none;
   touch-action: none;
 }
+
+html.nm-scroll-lock {
+  overscroll-behavior: none;
+}
 body.nation-map *,
 body.nation-map *::before,
 body.nation-map *::after {
@@ -193,6 +197,7 @@ body.nation-map *::after {
   position: relative;
   width: 100%;
   max-width: 1920px;
+  margin: 0 auto;  /* 避免鎖捲動/手勢期間 viewport 寬度重算，導致外框視覺貼邊 */
   aspect-ratio: 1920 / 800;   /* 高度依比例推算 */
   overflow: hidden;
 
@@ -378,17 +383,23 @@ body.nation-map *::after {
   min-height: 0;
   overflow: hidden;
   padding: 12px;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 12px;  
-}
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  }
 /* 左 65% 名稱、右 35% 國旗+幣別 */
 .info-top {
-  display: grid;
-  grid-template-columns: 50% 48%;
+  display: flex;
   gap: 10px;
   align-items: center;
 }
+
+/* iOS Safari：grid 在某些合成層/overflow 組合下會出現 reflow/不顯示（旗幟/幣別消失）
+   這裡改用 flex，並保留原本左右比例。
+*/
+.info-top .name-card { flex: 1 1 0; min-width: 0; }
+.info-top .meta-card { flex: 0 0 48%; max-width: 48%; min-width: 0; }
+.meta-card > * { flex: 1 1 0; min-width: 0; }
 .card {
   background: rgba(255,255,255,0.7);
   border: 1px solid var(--border);
@@ -421,8 +432,7 @@ body.nation-map *::after {
 
 /* 右側把國旗與幣別合在一塊，並排 */
 .meta-card {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 10px;
   align-items: center;
 }
@@ -550,7 +560,8 @@ body.nation-map *::after {
 }
 
 .payments-card{
-  grid-row: 2;
+  /* info-body 改為 flex 後不需要 grid-row；保留區塊順序由 DOM 決定 */
+  flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   margin: 0;
@@ -714,8 +725,8 @@ body.nation-map *::after {
     /* 手機提示：改成自適應寬高，避免文字被裁切 */
     width: auto;
     height: auto;
-    max-width: max-content;
-    max-height: max-content;
+    max-width: calc(34% - 24px);
+    /* iOS Safari：max-content 在 left/right 同時存在時容易算錯，改用可控的 max-width */
     top: 12px;
     bottom: auto;
     left: 12px;
