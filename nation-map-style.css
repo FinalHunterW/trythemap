@@ -145,6 +145,17 @@ body.nation-map {
   background: var(--bg);
   font: 14px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
 }
+
+
+/* === 手勢期間鎖住頁面捲動（A 方案） ===
+   - 功能：雙指操作地圖時，避免 Android 下拉重整 / 頁面跟著捲動
+   - 刪除影響：雙指平移容易被系統手勢打斷、操作卡住
+*/
+body.nm-scroll-lock {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
 body.nation-map *,
 body.nation-map *::before,
 body.nation-map *::after {
@@ -189,6 +200,13 @@ body.nation-map *::after {
   border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow);
+
+
+  /* iOS/Safari：提升合成層，減少 overlay/backdrop-filter 閃爍 */
+  transform: translateZ(0);
+  will-change: transform;
+  will-change: transform, opacity;
+  isolation: isolate;
 }
 
 /* SVG 跟著框縮放 */
@@ -306,7 +324,7 @@ body.nation-map *::after {
 .hint {
   position: absolute; left: 16px; bottom: 16px; padding: 6px 10px; font-size: 12px; color: var(--muted);
   background: rgba(255,255,255,0.6); border: 1px solid var(--border); backdrop-filter: blur(6px);
-  border-radius: 8px; pointer-events: none;
+  -webkit-backdrop-filter: blur(6px);border-radius: 8px; pointer-events: none;
 }
 
 /* === [05] 資訊卡（#infoPanel.info-float） ===
@@ -325,16 +343,16 @@ body.nation-map *::after {
 
   background: rgba(255,255,255,0.7);
   backdrop-filter: blur(12px) saturate(1.1);
-  border: 1px solid transparent;
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);border: 1px solid transparent;
   border-radius: 12px;
   box-shadow: var(--shadow);
 
   opacity: 0;
-  transform: translateX(-100%);  /* 初始從容器左側移出螢幕 */
+  transform: translateX(-100%) translateZ(0);  /* 初始從容器左側移出螢幕 */
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
 }
 .info-float.right {
-  transform: translateX(100%);   /* 若停靠右側，初始從右側移出 */
+  transform: translateX(100%) translateZ(0);   /* 若停靠右側，初始從右側移出 */
   left: auto; 
   right: 16px; 
 }
@@ -342,7 +360,7 @@ body.nation-map *::after {
   visibility: visible;
   pointer-events: auto;
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(0) translateZ(0);
   border-color: var(--border); 
   transition: border-color 0.3s ease 0.1s; 
 }
@@ -416,7 +434,9 @@ body.nation-map *::after {
   overflow: hidden;
   background: #fff;       /* 旗幟常見有透明區，給白底 */
 }
-.flag-box img { width: 100%; height: 100%; object-fit: cover; }
+.flag-box img { width: 100%; height: 100%; object-fit: cover; display: block; transform: translateZ(0); -webkit-transform: translateZ(0); }
+
+.currency-box { transform: translateZ(0); -webkit-transform: translateZ(0); }
 
 /* 幣別：中文名稱在上，英文(代碼)在下 */
 .currency-box .zh-cur {
@@ -697,6 +717,7 @@ body.nation-map *::after {
     max-width: max-content;
     max-height: max-content;
     top: 12px;
+    bottom: auto;
     left: 12px;
     right: 12px;
     line-height: 1.3;
