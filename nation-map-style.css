@@ -725,7 +725,7 @@ body.nation-map *::after {
     /* 手機提示：改成自適應寬高，避免文字被裁切 */
     width: auto;
     height: auto;
-    max-width: calc(34% - 24px);
+    max-width: max-content;
     /* iOS Safari：max-content 在 left/right 同時存在時容易算錯，改用可控的 max-width */
     top: 12px;
     bottom: auto;
